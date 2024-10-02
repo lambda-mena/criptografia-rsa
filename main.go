@@ -5,7 +5,7 @@ import (
 	"log"
 	"math/big"
 
-	"github.com/lambda-mena/secure-chat/internal"
+	"github.com/lambda-mena/criptografia-rsa/internal"
 )
 
 func main() {
