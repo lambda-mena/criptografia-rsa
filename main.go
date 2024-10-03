@@ -1,16 +1,20 @@
 package main
 
 import (
+	"bufio"
 	"fmt"
 	"log"
+	"os"
 
-	"github.com/lambda-mena/criptografia-rsa/internal"
+	"github.com/lambda-mena/criptografia-rsa/internal/crypto"
 )
+
+var scanner = bufio.NewScanner(os.Stdin)
 
 func main() {
 	log.Println("Criptografia-Rsa v1.0")
 	log.Println("Generando Llaves...")
-	internal.GenerateKeyPairs()
+	crypto.GenerateKeyPairs()
 
 	for {
 		var option int
@@ -27,21 +31,24 @@ func main() {
 	}
 }
 
+// Función para leer la entrada de la terminal
+func scanConsole() string {
+	scanner.Scan()
+	return scanner.Text()
+}
+
 // Función del CLI para encriptar un mensaje con llave publica.
 func encryptMessage() {
-	var publicKey string
-	var rawMessage string
 	log.Print("Digite el mensaje a encriptar: ")
-	fmt.Scan(&rawMessage)
+	rawMessage := scanConsole()
 	log.Print("Digite la llave publica con la cual encriptara: ")
-	fmt.Scan(&publicKey)
-	internal.EncryptMessage(publicKey, rawMessage)
+	public := scanConsole()
+	crypto.EncryptMessage(public, rawMessage)
 }
 
 // Función del CLI para desencriptar un mensaje con llave privada.
 func decryptMessage() {
-	var cipheredMessage string
 	log.Print("Digite el mensaje a desencriptar: ")
-	fmt.Scan(&cipheredMessage)
-	internal.DecryptMessage(cipheredMessage)
+	cipheredMessage := scanConsole()
+	crypto.DecryptMessage(cipheredMessage)
 }
