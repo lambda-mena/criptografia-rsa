@@ -3,7 +3,6 @@ package main
 import (
 	"fmt"
 	"log"
-	"math/big"
 
 	"github.com/lambda-mena/criptografia-rsa/internal"
 )
@@ -30,13 +29,13 @@ func main() {
 
 // Función del CLI para encriptar un mensaje con llave publica.
 func encryptMessage() {
-	publicModulus := new(big.Int)
+	var publicKey string
 	var rawMessage string
 	log.Print("Digite el mensaje a encriptar: ")
 	fmt.Scan(&rawMessage)
 	log.Print("Digite la llave publica con la cual encriptara: ")
-	fmt.Scan(publicModulus)
-	internal.EncryptMessage(publicModulus, rawMessage)
+	fmt.Scan(&publicKey)
+	internal.EncryptMessage(publicKey, rawMessage)
 }
 
 // Función del CLI para desencriptar un mensaje con llave privada.

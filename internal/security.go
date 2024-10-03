@@ -4,12 +4,9 @@ import (
 	"bytes"
 	"crypto/rand"
 	"crypto/rsa"
-	"crypto/sha256"
 	"encoding/base64"
-	"fmt"
 	"log"
 	"math/big"
-	"strconv"
 	"strings"
 )
 
@@ -26,67 +23,73 @@ func GenerateKeyPairs() {
 
 	publicKey = privateKey.PublicKey
 	// Imprime la información de tu llave privada
-	log.Println("--- LLAVE PRIVADA ---")
-	log.Println("P y Q -->", privateKey.Primes)
-	log.Println("N -->", privateKey.N)
-	log.Println("D -->", privateKey.D)
-	log.Println("--- FIN PRIVADA ---")
+	log.Println("--- PAR DE LLAVES ---")
+	//log.Println("--- VALORES LLAVE PRIVADA ---")
+	//log.Println("P y Q -->", privateKey.Primes)
+	//log.Println("N -->", privateKey.N)
+	//log.Println("D -->", privateKey.D)
+	log.Println("LLAVE PRIVADA ->", encodeToBase64(privateKey.D.Bytes()))
+	//log.Println("--- FIN PRIVADA ---")
 	// Imprime la llave publica para que la envies a la persona con la que desees hablar
-	log.Println("--- LLAVE PUBLICA ---")
-	log.Println("E y N -->", fmt.Sprintf("(%d, %s)", publicKey.E, publicKey.N))
-	log.Println("--- FIN PUBLICA ---")
+	//log.Println("--- VALORES LLAVE PUBLICA ---")
+	//log.Println("E y N -->", fmt.Sprintf("(%d, %s)", publicKey.E, publicKey.N))
+	log.Println("LLAVE PUBLICA ->", encodeToBase64(publicKey.N.Bytes()))
+	//log.Println("--- FIN PUBLICA ---")
+	log.Println("--- FIN LLAVES ---")
+}
+
+// Función para codificar en base64
+func encodeToBase64(key []byte) string {
+	return base64.StdEncoding.EncodeToString(key)
+}
+
+func decodeToBase64(key string) []byte {
+	decoded, err := base64.StdEncoding.DecodeString(key)
+	if err != nil {
+		log.Fatal("Error al decodificar la llave...")
+	}
+	return decoded
 }
 
 // Función de lógica para encriptar
-func EncryptMessage(publicModulus *big.Int, rawMessage string) {
+func EncryptMessage(publicKey string, rawMessage string) {
 	var public rsa.PublicKey
 	public.E = 65537
-	public.N = publicModulus
-	log.Println("Llave publica digitada:", fmt.Sprintf("(%d, %s)", public.E, public.N))
+	public.N = big.NewInt(0).SetBytes(decodeToBase64(publicKey))
 
-	rng := rand.Reader
-	cip, err := rsa.EncryptOAEP(sha256.New(), rng, &privateKey.PublicKey, []byte("Hola"), []byte("q"))
-	if err != nil {
-		log.Fatal("Error:", err)
-	}
-	log.Println(cip)
-
-	var cipheredMessage strings.Builder
+	var cipheredMessage []byte
 	for idx, rawChar := range rawMessage {
-		leftOperand := big.NewInt(0)
-		leftOperand.Exp(big.NewInt(int64(rawChar)), big.NewInt(int64(public.E)), nil)
-		cipheredChar := big.NewInt(0)
-		cipheredChar.Mod(leftOperand, public.N)
+		result := big.NewInt(0)
+		result.Exp(big.NewInt(int64(rawChar)), big.NewInt(int64(public.E)), public.N)
+		//log.Println("Writing array of bytes:", result.Bytes())
 
 		if idx+1 == len(rawMessage) {
-			cipheredMessage.WriteString(cipheredChar.String())
+			cipheredMessage = append(cipheredMessage, result.Bytes()...)
 		} else {
-			cipheredMessage.WriteString(cipheredChar.String() + "/")
+			extraBytes := append(result.Bytes(), []byte("/")...)
+			cipheredMessage = append(cipheredMessage, extraBytes...)
 		}
 	}
 
-	log.Println("Base64:", base64.NewEncoding(cipheredMessage.String()))
-	log.Println("Mensaje encriptado:", cipheredMessage.String())
+	//log.Println("Full array:", string(cipheredMessage))
+	log.Println("Mensaje encriptado:", encodeToBase64(cipheredMessage))
 }
 
 // Función de lógica para desencriptar
 func DecryptMessage(cipheredMessage string) {
 	var plainText strings.Builder
-	dividedArrayBytes := splitArrayBytes([]byte(cipheredMessage))
+	dividedArrayBytes := splitArrayBytes(decodeToBase64(cipheredMessage))
+	//log.Println("Array Divided:", dividedArrayBytes)
 	for _, byteArray := range dividedArrayBytes {
-		num, err := strconv.Atoi(string(byteArray))
-		if err != nil {
-			log.Println("No se pudo convertir el arreglo de bytes a numero.")
-		}
-		result := big.NewInt(int64(num))
-		result = result.Exp(result, privateKey.D, nil)
-		result = result.Mod(result, privateKey.N)
-		fmt.Println("Caracter:", result.Int64())
+		//log.Println("Byte array:", byteArray)
+		result := big.NewInt(0).SetBytes(byteArray)
+		//log.Println("Read BigInt:", result)
+		result = result.Exp(result, privateKey.D, privateKey.N)
 		ascii := rune(result.Int64())
 		plainText.WriteRune(ascii)
 	}
 
-	fmt.Println("Mensaje:", plainText.String())
+	log.Println("Mensaje:", plainText.String())
 }
 
 func splitArrayBytes(content []byte) [][]byte {
